@@ -1,0 +1,172 @@
+---
+title: "Analyses"
+author: "Bob O'Hara"
+format: 
+  html:
+    code-fold: true
+    code-summary: "Show the code"
+---
+
+
+## Reading in the data
+
+
+```{r ReadStats}
+# Read in the statistics
+Basic.stats <- read.csv(file='data/basic_statistics.txt')
+Basic.statsNoDom <- read.csv(file='data/basic_statisticsNoDom.txt')
+
+richness_estimates <- read.csv(file='data/richness_estimates.txt')
+richness_estimatesNoDom <- read.csv(file='data/richness_estimatesNoDom.txt')
+richness_estimatestrimmed <- read.csv(file='data/richness_estimatestrimmed.txt')
+
+```
+
+
+## Figure 1
+
+This is the same as in the paper.
+
+```{r Fig1}
+#| fig-height: 12
+# pdf(file='Evenness_Fig_1.pdf',height=11.25,width=7.5)
+
+par(mfrow=c(3,2))
+par(mai=c(0.8,0.8,0.3,0.3))
+par(cex=1)
+
+plot(richness_estimates$pln_richness, 
+     richness_estimatesNoDom$pln_richness, 
+     pch=21, cex=0.85, col='white', bg='red', bty='l', xaxs='i', yaxs='i',
+     mgp=c(2.5,0.75,0), cex.lab=1.2, 
+     xlab='Full sample PLN', ylab='PLN without dominant', 
+     xlim=c(1,1e4), ylim=c(1,1e4), log='xy', axes=FALSE)
+
+axis(side=1,at=c(1,10,100,1000,1e4),mgp=c(2.5,0.75,0))
+axis(side=2,at=c(1,10,100,1000,1e4),mgp=c(2.5,0.75,0))
+abline(0,1,col='gold')
+mtext(side=2,at=1e4,text='A',cex=1.3,line=2.65,las=2)
+
+plot(richness_estimates$cegs_richness, richness_estimatesNoDom$cegs_richness,
+     pch=21, cex=0.85, col='white', bg='dodgerblue', bty='l', xaxs='i', yaxs='i',
+     mgp=c(2.5,0.75,0), cex.lab=1.2,
+     xlab='Full sample CEGS',ylab='CEGS without dominant', 
+     xlim=c(1,1e4), ylim=c(1,1e4), log='xy', axes=FALSE)
+axis(side=1,mgp=c(2.5,0.75,0))
+axis(side=2,at=c(1,10,100,1000,1e4),mgp=c(2.5,0.75,0))
+abline(0,1,col='gold')
+mtext(side=2,at=1e4,text='B',cex=1.3,line=2.65,las=2)
+
+plot(Basic.stats$alpha, Basic.statsNoDom$alpha,
+     pch=21, cex=0.85, col='white', bg='blue', bty='l', xaxs='i', yaxs='i', 
+     mgp=c(2.5,0.75,0), cex.lab=1.2,
+     xlab=expression(paste("Full sample Fisher's ",alpha)), 
+     ylab=expression(paste("Fisher's ",alpha," w/o dominant")), 
+     xlim=c(0.1,1e3), ylim=c(0.1,1e3), log='xy', axes=FALSE)
+axis(side=1,mgp=c(2.5,0.75,0))
+axis(side=2,at=c(0.1,1,10,100,1000),mgp=c(2.5,0.75,0))
+abline(0,1,col='gold')
+mtext(side=2,at=1e3,text='C',cex=1.3,line=2.65,las=2)
+
+plot(Basic.stats$H, Basic.statsNoDom$H, 
+     pch=21,  cex=0.85,  col='white',  bg='orange',  bty='l', xaxs='i', yaxs='i', 
+     mgp=c(2.5, 0.75, 0), cex.lab=1.2, 
+     xlab=expression(paste('Full sample exp(', italic(H), ')')), 
+     ylab=expression(paste('exp(', italic(H), ') without dominant')), 
+     xlim=c(0.1, 1000), ylim=c(0.1, 1000), log='xy', axes=F)
+axis(side=1, at=c(0.1, 1, 10, 100, 1000), labels=c('0.1', '1', '10', '100', '1000'), 
+     mgp=c(2.5, 0.75, 0))
+axis(side=2, at=c(0.1, 1, 10, 100, 1000), labels=c('0.1', '1', '10', '100', '1000'), 
+     mgp=c(2.5, 0.75, 0))
+abline(0, 1, col='gold')
+mtext(side=2, at=1000, text='D', cex=1.3, line=2.75, las=2)
+
+plot(Basic.stats$D, Basic.statsNoDom$D, pch=21, cex=0.85, col='white', bg='violet', 
+     bty='l', xaxs='i', yaxs='i', mgp=c(2.5, 0.75, 0), cex.lab=1.2, 
+     xlab=expression(paste('Full sample 1/', italic(D))), 
+     ylab=expression(paste('1/', italic(D), ' without dominant')), 
+     xlim=c(0.1, 1000), ylim=c(0.1, 1000), log='xy', axes=F)
+axis(side=1, at=c(0.1, 1, 10, 100, 1000), labels=c('0.1', '1', '10', '100', '1000'), 
+     mgp=c(2.5, 0.75, 0))
+axis(side=2, at=c(0.1, 1, 10, 100, 1000), labels=c('0.1', '1', '10', '100', '1000'), 
+     mgp=c(2.5, 0.75, 0))
+abline(0, 1, col='gold')
+mtext(side=2, at=1000, text='E', cex=1.3, line=2.65, las=2)
+
+plot(Basic.stats$J, Basic.statsNoDom$J, pch=21, cex=0.85, col='white', bg='green3', 
+     bty='l', xaxs='i', yaxs='i', mgp=c(2.5, 0.75, 0), cex.lab=1.2, 
+     xlab=expression(paste('Full sample ', italic(J))), 
+     ylab=expression(paste(italic(J), ' without dominant')), 
+     xlim=c(0, 1), ylim=c(0, 1))
+abline(0, 1, col='gold')
+mtext(side=2, at=1, text='F', cex=1.3, line=2.65, las=2)
+
+
+```
+
+
+## Non-parametric Bootstrapping
+
+The bootstrap is over species. At the moment this is a placeholder.
+
+
+```{r Boot}
+#| eval: false
+OneBoot <- function(n) {
+  n.samp <- sample(n, replace=TRUE)
+  stats <- CalcBasicStats(n.samp)
+  pars <- CalcParSR(n.samp, trim=FALSE)
+  c(stats, pars)
+}
+
+thing <- replicate(10, OneBoot(n))
+apply(thing, 1, mean, na.rm=TRUE)
+
+```
+
+# Simulations
+
+We will fit the PLN, CEGs and NegBin to a data set. From each fitted distribution we will simulate data, and estimate SR with each distribution. 
+
+We can see that, broadly, each distribution does OK with its own data, but badly with the others. The negative binomial is rather unstable, hence there are fewer points. If might be that CEGS slightly over-estimates species richness, but we would need more data.
+
+```{r SRBiases}
+#| fig-height: 14
+# n <- data$co[data$sample.no==2]
+if(!file.exists("data/SRBiases.txt")) {
+  BigSites <- BasicStats$sample.name[which(BasicStats$UniqueCounts>60)]
+  Use <- data$sample.name%in%BigSites
+  
+  Biases.by <- tapply(data$co[Use], list(data$sample.no[Use]), ParametricBootstraps, simplify=TRUE, nsim=50)
+  Biases.m <- do.call(rbind, Biases.by)
+  Biases <- data.frame(Biases.m)
+  write.csv(Biases, file='data/SRBiases.txt')
+}
+
+
+PlotSR <- function(df, which=c("CEGS", "NB", "PLN")) {
+  dd <- df[,grep(which, names(df))]
+  Diff <- sweep(log(dd[,grep("richness", names(dd))]), 1, log(dd[,grep("SimSR", names(dd))]), "-")
+  
+  Names <- c(sapply(names(Diff), function(nm, lst) rep(nm, times=length(lst[[nm]])), lst=dd))
+  
+  SRdata <- data.frame(Diff=unlist(Diff), model=unlist(Names), 
+                       dataset =unlist(lapply(Diff, function(x) 1:length(x))))
+  SRdata <- SRdata[!is.nan(SRdata$Diff),]
+  SRdata$model.at <- as.numeric(as.factor(SRdata$model))
+  ylabels <- tapply(SRdata$model, list(SRdata$model.at), function(x) gsub("_.*", "", gsub(".*\\.", "", x[1])))
+                    
+  plot(SRdata$Diff, jitter(SRdata$model.at), yaxt="n", main=which,
+       xlab="Bias in species richness estimate", ylab="")
+  axis(2, labels=ylabels, at=as.numeric(names(ylabels)), las=1)
+  abline(v=0, lty=3)
+}
+
+SRBiases <- read.csv("data/SRBiases.txt")
+par(mfrow=c(3,1))
+invisible(sapply(c("CEGS", "NB", "PLN"), function(x, df) PlotSR(df, which=x), df=SRBiases))
+
+```
+
+
+

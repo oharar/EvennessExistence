@@ -1,0 +1,122 @@
+---
+title: "Model Fitting"
+author: "Bob O'Hara"
+format: 
+  html:
+    code-fold: true
+    code-summary: "Show the code"
+---
+
+## Introduction
+
+This is code to calculate statistics, and fit different diversity models. First we set up the functions and packages, then we calculate some standard statistics and finally fit distributions: the Poisson log-normal, CEGS and negative binomial.
+
+The code is hidden in folds: it includes some functions.
+
+
+## EMPIRICAL DATA
+
+The poilog fits a Poisson log normal distribution to the data, from which we can extract statistics. Some aof the functions have alternatives based on the `vegan` package. 
+The other functions the source functions fit distributions, provide random numbers, and get some stats. `trim()` is used to replace the two largest values with the second smallest unique value. Note that the `simpson()` function uses an unbiased estimator of the inverse of Simpson's D, rather than $1/\sum_i p_i^2$.
+
+```{r}
+library(poilog)
+library(vegan)
+
+source('R/cegsML.R')
+source('R/sadrad.R')
+source('R/rcegs.R')
+source('R/fisher.R')
+source('R/shannon.R')
+source('R/simpson.R')
+source('R/negbin.R')
+source('R/ExtractMetadata.R')
+source('R/CalcBasicStats.R')
+
+# replaces two largest values by second smallest unique value
+trim<-function(n)	{
+  n[which(rank(-n)%in%1:2)] <- sort(unique(n))[2]
+  n
+}
+```
+
+The data need to be dwnloaded from Dryad, DOI: 10.5061/dryad.brv15dvdc
+
+```{r}
+if(!file.exists('data/Ecological_Register_data.txt.gz')) stop('data/Ecological_Register_data.txt.gz does not exist. You need to download it from https://doi.org/10.5061/dryad.brv15dvdc')
+
+data <- read.delim(gzfile('data/Ecological_Register_data.txt.gz'))
+
+# prepare the data
+data[is.na(data[,'count']),'count'] <- 0
+data[is.na(data[,'count.2']),'count.2'] <- 0
+data$co <- data$count + data$count.2
+
+```
+
+
+# Calculating Standard statistics
+
+Now we calculate the typical descriptive statistics: Shannon and Simpson, and their diversity equivalents (see Hill (1973) for definitions). We do this for the data, the data trimmed as described in the paper (apparently "precision can be enhanced while paying almost nothing in terms of accuracy by decreasing the influence of outliers").
+
+```{r}
+# CalcBasicStats(data$co[data$sample.no==data$sample.no[1]], removeDom=TRUE)
+# CalcBasicStats(data$co[data$sample.no==data$sample.no[1]], removeDom=TRUE, vegan=TRUE)
+
+# Note: the original code skipped samples where there were <3 unique counts. 
+# Here we include them but have UniqueCounts so we can remove later if needed
+Meta.by <- by(data, list(data$sample.no), ExtractMetadata, simplify=TRUE)
+MetaData.m <- do.call(rbind, Meta.by)
+
+if(!file.exists('data/basic_statistics.txt')) {
+  BasicStats.by <- tapply(data$co, list(data$sample.no), CalcBasicStats, simplify=TRUE)
+  BasicStats.m <- do.call(rbind, BasicStats.by)
+  BasicStats <- cbind(as.data.frame(BasicStats.m), as.data.frame(MetaData.m))
+  write.csv(BasicStats, file='data/basic_statistics.txt')
+}
+
+if(!file.exists('data/basic_statisticsNoDom.txt')) {
+  BasicStatsNoDom.by <- tapply(data$co, list(data$sample.no), CalcBasicStats, simplify=TRUE, removeDom=TRUE)
+  BasicStatsNoDom.m <- do.call(rbind, BasicStats.by)
+  BasicStatsNoDom <- cbind(as.data.frame(BasicStatsNoDom.m), as.data.frame(MetaData.m))
+  write.csv(BasicStatsNoDom, file='data/basic_statisticsNoDom.txt')
+}
+
+```
+
+
+# DISTRIBUTION PARAMETERS
+
+Now we fit the Poisson lognormal disrtibution, CEGS ("compound exponential-geometric series distribution"), and negtive binomial: these are all zero truncated. From these we return the patameter estimates and estimates of species richness.
+
+```{r}
+# Calculate Parametric Richness Estimates
+
+
+# n <- data$co[data$sample.no==3]
+# CalcParSR(n, trim=TRUE)
+# CalcParSR(n, trim=FALSE)
+
+if(!file.exists('data/richness_estimates.txt')) {
+  ParSR.by <- tapply(data$co, list(data$sample.no), CalcParSR, 
+                     simplify=TRUE, trim=FALSE)
+  ParSR <- data.frame(do.call(rbind, ParSR.by))
+  write.csv(ParSRtrim,file='data/richness_estimates.txt')
+}
+
+if(!file.exists('data/richness_estimatesNoDom.txt')) {
+  ParSRNoDom.by <- tapply(data$co, list(data$sample.no), CalcParSR, 
+                          simplify=TRUE, trim=FALSE, removeDom=TRUE)
+  ParSRNoDom <- data.frame(do.call(rbind, ParSRNoDom.by))
+  write.csv(ParSRtrim,file='data/richness_estimatesNoDom.txt')
+}
+
+if(!file.exists('data/richness_estimatestrimmed.txt')) {
+  ParSRtrim.by <- tapply(data$co, list(data$sample.no), CalcParSR, 
+                         simplify=TRUE, trim=TRUE)
+  ParSRtrim <- as.data.frame(do.call(rbind, ParSRtrim.by))
+  write.csv(ParSRtrim,file='data/richness_estimatestrimmed.txt')
+}
+```
+
+

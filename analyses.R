@@ -11,173 +11,181 @@ source('R/rcegs.R')
 source('R/fisher.R')
 source('R/shannon.R')
 source('R/simpson.R')
+source('R/negbin.R')
 
 # used by cegsML
 
 trim<-function(n)	{
-	n <- rev(sort(n))
-	n[1:2] <- as.numeric(names(table(n)))[2]
-	n
+  ns <- sort(n, decreasing=TRUE)
+  ns[1:2] <- sort(unique(n))[2]
+	ns
 }
+
 
 # the data are drawn from Dryad
 # DOI: 10.5061/dryad.brv15dvdc
 
 if(!file.exists('data/Ecological_Register_data.txt.gz')) stop('data/Ecological_Register_data.txt.gz does not exist. You need to download it from https://doi.org/10.5061/dryad.brv15dvdc')
 
-r <- read.delim(gzfile('data/Ecological_Register_data.txt.gz')) #, exdir = "data")
+data <- read.delim(gzfile('data/Ecological_Register_data.txt.gz')) #, exdir = "data")
+
 
 # prepare the data
+data[is.na(data[,'count']),'count'] <- 0
+data[is.na(data[,'count.2']),'count.2'] <- 0
+data$co <- data$count + data$count.2
 
-sample <- r[,'sample.no']
-
-r[is.na(r[,'count']),'count'] <- 0
-r[is.na(r[,'count.2']),'count.2'] <- 0
-co <- r[,'count'] + r[,'count.2']
-
-nos <- unique(sample)
 
 # compute basic descriptive variables
 # shannon and simpson transform the values into diversity equivalents by default
 # see Hill (1973) for definitions
 
-N <- array()
-S <- array()
-alpha <- array()
-H <- array()
-D <- array()
-eco <- array()
-lat <- array()
-long <- array()
-form <- array()
-
-for (i in sample(nos))	{
-	n <- co[sample == i]
-	if (length(table(n)) < 3)
-		next
-	N[i] <- sum(n)
-	S[i] <- length(n)
-	alpha[i] <- fisher(n)
-	H[i] <- shannon(n)
-	D[i] <- simpson(n)
-	eco[i] <- r[r[,'sample.no'] == i,'ecozone'][1]
-	lat[i] <- r[r[,'sample.no'] == i,'latitude'][1]
-	long[i] <- r[r[,'sample.no'] == i,'longitude'][1]
-	form[i] <- r[r[,'sample.no'] == i,'life.form'][1]
+CalcBasicStats <- function(n, removeDom=FALSE, vegan=FALSE) {
+  if(removeDom & length(unique(n))>1) n <- n[n!=max(n)]
+  
+  if(vegan) {
+    res <- c(N = sum(n), S = length(n), alpha = vegan::fisher.alpha(n), 
+             H = vegan::diversity(n, index="shannon"), 
+             D = 1/(1-vegan::simpson.unb(n)), 
+             UniqueCounts = length(unique(n)))
+  } else {
+    res <- c(N = sum(n), S = length(n), alpha = fisher(n), H = shannon(n), 
+             D = simpson(n), UniqueCounts = length(unique(n)))
+  }
+  # compute Pielou's J & the log-transformed Hill ratio of H and D
+  res <- c(res, J=log(res['H'])/log(res['S']), HD = log(res['H']/res['D']))
+  names(res) <- gsub("\\.H", "", names(res))
+  
+  res
 }
 
-# compute Pielou's J
+CalcBasicStats(data$co[data$sample.no==data$sample.no[1]], removeDom=TRUE)
+CalcBasicStats(data$co[data$sample.no==data$sample.no[1]], removeDom=TRUE, vegan=TRUE)
 
-J <- log(H) / log(S)
 
-# compute the log-transformed Hill ratio of H and D
+ExctractMetadata <- function(df) {
+  meta <- c(eco=df$ecozone[1], lat=df$latitude[1], 
+            long=df$longitude[1], 
+            form=df$life.form[1]
+  )
+  meta
+}
 
-HD <- log(H / D)
+# Note: the original code skipped samples where there were <3 unique counts. 
+# Here we include them but have UniqueCounts so we can remove later if needed
+BasicStats.by <- tapply(data$co, list(data$sample.no), CalcBasicStats, simplify=TRUE)
+BasicStats.m <- do.call(rbind, BasicStats.by)
+BasicStatsNoDom.by <- tapply(data$co, list(data$sample.no), CalcBasicStats, simplify=TRUE, removeDom=TRUE)
+BasicStatsNoDom.m <- do.call(rbind, BasicStatsNoDom.by)
+Meta.by <- by(data, list(data$sample.no), ExctractMetadata, simplify=TRUE)
+MetaData.m <- do.call(rbind, Meta.by)
 
-# save the data
+BasicStats <- cbind(as.data.frame(BasicStats.m), as.data.frame(MetaData.m))
+BasicStatsNoDom <- cbind(as.data.frame(BasicStatsNoDom.m), as.data.frame(MetaData.m))
 
-x <- cbind(N,S,alpha,H,D,J,HD)
-colnames(x) <- c('individuals','species','alpha','H','D','J','Hill ratio')
-
-write.table(x,file='basic_statistics.txt',sep='\t',quote=F)
-
-x <- cbind(eco,lat,long,form)
-colnames(x) <- c('ecozone','latitude','longitude','life form')
-
-write.table(x,file='metadata.txt',sep='\t',quote=F)
-
+write.csv(BasicStats, file='data/basic_statistics.txt')
+write.csv(BasicStatsNoDom, file='data/basic_statisticsNoDom.txt')
 
 # correlations of S and J and of S and the ratio, which are reported in the text
 
-cor.test(S,J,method='s')$estimate
-cor.test(S,J,method='s')$p.value
-cor.test(S,HD,method='s')$estimate
-cor.test(S,HD,method='s')$p.value
+
+par(mfrow=c(1,2))
+plot(log(BasicStats$S),BasicStats$J, xlab="log(S)", ylab="J")
+plot(log(BasicStats$S),BasicStats$HD, xlab="log(S)", ylab="HD")
+
+cor.test(log(BasicStats$S),BasicStats$J)
+cor.test(log(BasicStats$S),BasicStats$HD)
+
+cor.test(BasicStats$S,BasicStats$J,method='s')$estimate
+cor.test(BasicStats$S,BasicStats$J,method='s')$p.value
+cor.test(BasicStats$S,BasicStats$HD,method='s')$estimate
+cor.test(BasicStats$S,BasicStats$HD,method='s')$p.value
 
 
 # DISTRIBUTION PARAMETERS
 
 # use poilog and provided functions to compute distribution parameters
 
-pln_richness <- array()
-cegs_richness <- array()
 
-pln_sigma <- array(dim=length(H))
-cegs_gamma <- array(dim=length(H))
+# Calculate Parametric Richness Estimates
 
-d <- 0
+CalcParSR <- function(n, trim=TRUE, removeDom=FALSE) {
+  if(removeDom & length(unique(n))>1) n <- n[n!=max(n)]
+  if(trim) n <- trim(n)
 
-for (i in sample(nos))	{
-	n <- co[sample == i]
-	if (length(table(n)) < 3)
-		next
-	d <- d + 1
-	if (d %% 100 == 0)
-		cat('\r',d)
+# These are in case anything crashes
+  ln <- list(p=as.numeric(NA), par=as.numeric(c(NA,NA)), logLval=as.numeric(NA))
+  eg <- list(richness=as.numeric(NA), shape=as.numeric(NA))
+  nb <- list(richness=as.numeric(NA), size=as.numeric(NA), 
+             prob=as.numeric(NA), loglik=as.numeric(NA))
 
-	ln <- poilogMLE(n)
-	pln_richness[i] <- length(n) / ln$p
-	pln_sigma[i] <- ln$par[2]
-
-	eg <- cegsML(trim(n))
-	cegs_richness[i] <- eg$richness
-	cegs_gamma[i] <- eg$shape
+  try(ln <- poilog::poilogMLE(n), silent = TRUE)
+  try(nb <- FitNB(n), silent = TRUE)
+  try(eg <- cegsML(n, fitted = FALSE), silent = TRUE)
+  cegs_loglik <- ifelse(is.na(eg$scale), NA, sum(dcegs(x=n, l=eg$scale,g=eg$shape, log=TRUE)))
+  
+  res <- c(
+    pln_richness = length(n)/ln$p, pln_sigma = ln$par[2], pln_loglik = ln$logLval,
+    cegs_richness = eg$richness, cegs_gamma = eg$shape, cegs_loglik = cegs_loglik, 
+    nb_richness = nb$richness, nb_size=nb$size, nb_loglik = nb$loglik,
+    nb_prob=nb$prob
+  )
+  res
 }
 
-# save the data
+n <- data$co[data$sample.no==1254]
+CalcParSR(n, trim=TRUE)
+CalcParSR(n, trim=FALSE)
 
-x <- cbind(pln_richness,cegs_richness)
-colnames(x) <- c('PLN richness','CEGS richness')
-
-write.table(x,file='richness_estimates.txt',sep='\t',quote=F)
-
-# Fisher's alpha is a distribution parameter as well
-
-x <- cbind(pln_sigma,cegs_gamma,alpha)
-colnames(x) <- c('PLN sigma','CEGS gamma',"Fisher's alpha")
-
-write.table(x,file='distribution_parameters.txt',sep='\t',quote=F)
+system.time(
+ParSR.by <- tapply(data$co, list(data$sample.no), CalcParSR, 
+                   simplify=TRUE, trim=FALSE)
+)
+ParSR <- data.frame(do.call(rbind, ParSR.by))
+write.csv(ParSRtrim,file='data/richness_estimates.txt')
 
 
-# STATISTICS WITHOUT DOMINANTS
+thing <- unlist(lapply(ParSR.by, length))
+which (thing!=10)
 
-sub_pln_richness <- array()
-sub_cegs_richness <- array()
-sub_alpha <- array()
-sub_H <- array()
-sub_D <- array()
-sub_J <- array()
+ParSR.by[[1200]]
 
-d <- 0
+ParSRNoDom.by <- tapply(data$co, list(data$sample.no), CalcParSR, 
+                   simplify=TRUE, trim=FALSE, removeDom=TRUE)
+ParSRNoDom <- data.frame(do.call(rbind, ParSRNoDom.by))
+write.csv(ParSRtrim,file='data/richness_estimatesNoDom.txt')
 
-for (i in sample(nos))	{
-	n <- co[sample == i]
-	if (length(table(n)) < 3)
-		next
-	d <- d + 1
-	if (d %% 100 == 0)
-		cat('\r',d)
-	# remove the dominant and recompute the statistics
-	n <- sort(n)[1:(length(n) - 1)]
-	sub_pln_richness[i] <- length(n) / poilogMLE(n)$p
-	sub_cegs_richness[i] <- cegsML(trim(n))$richness
-	sub_alpha[i] <- fisher(n)
-	sub_H[i] <- shannon(n)
-	sub_D[i] <- simpson(n)
-	sub_J[i] <- log(sub_H[i]) / log(length(n))
-}
+ParSRtrim.by <- tapply(data$co, list(data$sample.no), CalcParSR, 
+                       simplify=TRUE, trim=TRUE)
+ParSRtrim <- as.data.frame(do.call(rbind, ParSRtrim.by))
+write.csv(ParSRtrim,file='data/richness_estimatestrimmed.txt')
 
-# save the data
 
-x <- cbind(sub_pln_richness,sub_cegs_richness,sub_alpha,sub_H,sub_D,sub_J)
-colnames(x) <- c('subdominant PLN richness','subdominant CEGS richness','subdominant alpha','subdominant H','subdominant D','subdominant J')
+pairs(cbind(log(ParSR$pln_richness), log(ParSRtrim$pln_richness), log(ParSRNoDom$pln_richness)))
+pairs(cbind(log(ParSR$cegs_richness), log(ParSRtrim$cegs_richness), log(ParSRNoDom$cegs_richness)))
+pairs(cbind(log(ParSR$nb_richness), log(ParSRtrim$nb_richness), log(ParSRNoDom$nb_richness)))
 
-write.table(x,file='subdominant_diversity_estimates.txt',sep='\t',quote=F)
+
+pairs(cbind(ParSR$pln_loglik, ParSR$nb_loglik, ParSR$cegs_loglik))
+
+sum(ParSR$pln_loglik<ParSR$cegs_loglik, na.rm = TRUE)
+mean(ParSR$pln_loglik<ParSR$nb_loglik, na.rm = TRUE)
+
+range(ParSR$pln_loglik-ParSR$cegs_loglik, na.rm = TRUE)
+hist(ParSR$nb_loglik-ParSR$cegs_loglik)
+
+
+
+pairs(ParSR)
+plot(log(ParSR$pln_richness), log(ParSR$cegs_richness))
+plot(log(ParSR$pln_richness), log(ParSR$nb_richness))
+plot(log(ParSR$cegs_richness), log(ParSR$nb_richness))
+
 
 
 # FIGURE 1: STATISTICS WITHOUT DOMINANTS
 
-x <- read.delim('richness_estimates.txt')
+x <- read.csv('data/richness_estimates.txt')
 
 pln_richness <- x[,1]
 cegs_richness <- x[,2]

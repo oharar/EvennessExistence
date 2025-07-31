@@ -1,7 +1,7 @@
-cegsML<-function(n)	{
+cegsML<-function(n, fitted=TRUE)	{
 	if (length(table(n)) < 3)
 		return(list('richness' = NA, 'scale' = NA, 'shape' = NA, 'AICc' = NA, 'fitted.RAD' = NA, 'fitted.SAD' = NA))
-	library(stats4)
+
 	S <- length(n)
 	s <- array(dim=max(n),data=0)
 	t <- table(n)
@@ -31,18 +31,36 @@ cegsML<-function(n)	{
 			return(1e10)
 		ll
 	}
-	cf <- try(coef(stats4::mle(like,lower=list(l=0,g=-10),upper=list(l=1e8,g=10),start=list(l=1,g=2))),silent=T)
-	l <- cf[1]
-	g <- cf[2]
-	if (l == 0 || l == 1e8 || g == -10 || g == 10)
-		return(list('richness' = NA, 'scale' = NA, 'shape' = NA, 'AICc' = NA, 'fitted.RAD' = NA, 'fitted.SAD' = NA))
-	aicc <- 2 * like(l,g) + 4 + 12 / (S - 3)
-	g <- exp(g)
-	p <- array()
-	mx <- max(2^12,2^ceiling(log2(max(n))))
-	for (i in 1:mx)
-		p[i] <- integrate(px,l=l,g=g,i=i,lower=1e-20,upper=1 - 1e-20,stop.on.error=F)$value
-	p0 <- integrate(p0,l=l,g=g,lower=1e-20,upper=1 - 1e-20,stop.on.error=F)$value
-	p <- p / (1 - p0)
-	return(list('richness' = as.numeric(S / (1 - p0)), 'scale' = as.numeric(l), 'shape' = as.numeric(g), 'AICc' = aicc, 'fitted.RAD' = sadrad(length(n),p), 'fitted.SAD' = p[1:2^12]))
+#	cf <- try(stats4::mle(like,lower=list(l=0,g=-10),upper=list(l=1e8,g=10),start=list(l=1,g=2)), silent=T)
+	cf <- tryCatch(stats4::mle(like,lower=list(l=0,g=-10),upper=list(l=1e8,g=10),start=list(l=1,g=2)), 
+	               error=function(e) NULL, silent=TRUE)
+	if(!is.null(cf)) {
+	  l <- coef(cf)[1]
+	  g <- coef(cf)[2]
+	} else {
+	  l <- NA
+	  g <- NA
+	  
+	}
+	if (is.na(l) || l == 0 || l == 1e8 || g == -10 || g == 10) {
+	  res <- list('richness' = NA, 'scale' = NA, 'shape' = NA, 'AICc' = NA, 'fitted.RAD' = NA, 'fitted.SAD' = NA)
+	} else {
+	  aicc <- 2 * like(l,g) + 4 + 12 / (S - 3)
+	  g <- exp(g)
+	  p <- array()
+	  mx <- max(2^12,2^ceiling(log2(max(n))))
+	  for (i in 1:mx)
+	    p[i] <- integrate(px,l=l,g=g,i=i,lower=1e-20,upper=1 - 1e-20,stop.on.error=F)$value
+	  p0 <- integrate(p0,l=l,g=g,lower=1e-20,upper=1 - 1e-20,stop.on.error=F)$value
+	  p <- p / (1 - p0)
+	  
+	  res <- list('richness' = as.numeric(S / (1 - p0)), 'scale' = as.numeric(l), 
+	              'shape' = as.numeric(g), 'AICc' = aicc)
+	  if(fitted) {
+	    res$fitted.RAD <-  sadrad(length(n),p)
+	    res$fitted.SAD <- p[1:2^12]
+	  }
+	  
+	}
+	return(res)
 }
