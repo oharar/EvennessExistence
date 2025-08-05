@@ -120,6 +120,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="figure-1" class="level2">
 <h2 class="anchored" data-anchor-id="figure-1">Figure 1</h2>
+<p>This is the same as in the paper.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Show the code</summary>
@@ -204,63 +205,92 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </section>
+<section id="model-fit" class="level2">
+<h2 class="anchored" data-anchor-id="model-fit">Model Fit</h2>
+<p>How well does each model fit to the data? We calculate the log likelihoods, and take the difference from the CEGS log likelihood, so a positive value means the CEGS model fits worse, a negative value means it fits better. We plot the differences for the Poisson lognormal and negative binomial agaionst each other.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>LogLik <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">pln_loglik=</span>richness_estimates<span class="sc">$</span>pln_loglik <span class="sc">-</span> richness_estimates<span class="sc">$</span>cegs_loglik,</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>            <span class="at">nb_loglik=</span>richness_estimates<span class="sc">$</span>nb_loglik <span class="sc">-</span> richness_estimates<span class="sc">$</span>cegs_loglik)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(LogLik, <span class="at">xlab=</span><span class="st">"PLN - CEGS"</span>, <span class="at">ylab=</span><span class="st">"NB - CEGS"</span>, <span class="at">cex=</span><span class="fl">0.5</span>, </span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>     <span class="at">main=</span><span class="st">"Differences from the CEGS log likelihood for the</span><span class="sc">\n</span><span class="st">Poisson lognormal and negative binomial distributions"</span>)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="dv">1</span>,<span class="dv">1</span>, <span class="at">col=</span><span class="st">"grey50"</span>)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">v=</span><span class="dv">0</span>, <span class="at">lty=</span><span class="dv">3</span>, <span class="at">col=</span><span class="dv">2</span>); <span class="fu">abline</span>(<span class="at">h=</span><span class="dv">0</span>, <span class="at">lty=</span><span class="dv">3</span>, <span class="at">col=</span><span class="dv">2</span>); </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Analyses_files/figure-html/unnamed-chunk-1-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>In almost every data set the CEGS model is the worst: the negative binomial has a higher likelihood for every data set, and the Poisson lognormal is better in all but 54 out of 3257 data sets.</p>
+</section>
 <section id="non-parametric-bootstrapping" class="level2">
 <h2 class="anchored" data-anchor-id="non-parametric-bootstrapping">Non-parametric Bootstrapping</h2>
 <p>The bootstrap is over species. At the moment this is a placeholder.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Show the code</summary>
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>OneBoot <span class="ot">&lt;-</span> <span class="cf">function</span>(n) {</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  n.samp <span class="ot">&lt;-</span> <span class="fu">sample</span>(n, <span class="at">replace=</span><span class="cn">TRUE</span>)</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  stats <span class="ot">&lt;-</span> <span class="fu">CalcBasicStats</span>(n.samp)</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  pars <span class="ot">&lt;-</span> <span class="fu">CalcParSR</span>(n.samp, <span class="at">trim=</span><span class="cn">FALSE</span>)</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(stats, pars)</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>thing <span class="ot">&lt;-</span> <span class="fu">replicate</span>(<span class="dv">10</span>, <span class="fu">OneBoot</span>(n))</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="fu">apply</span>(thing, <span class="dv">1</span>, mean, <span class="at">na.rm=</span><span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>OneBoot <span class="ot">&lt;-</span> <span class="cf">function</span>(n) {</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  n.samp <span class="ot">&lt;-</span> <span class="fu">sample</span>(n, <span class="at">replace=</span><span class="cn">TRUE</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  stats <span class="ot">&lt;-</span> <span class="fu">CalcBasicStats</span>(n.samp)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  pars <span class="ot">&lt;-</span> <span class="fu">CalcParSR</span>(n.samp, <span class="at">trim=</span><span class="cn">FALSE</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(stats, pars)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>thing <span class="ot">&lt;-</span> <span class="fu">replicate</span>(<span class="dv">10</span>, <span class="fu">OneBoot</span>(n))</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="fu">apply</span>(thing, <span class="dv">1</span>, mean, <span class="at">na.rm=</span><span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
+</section>
+<section id="model-fit-1" class="level1">
+<h1>Model fit</h1>
+<p>How well do the 3 models fit the data?</p>
 </section>
 <section id="simulations" class="level1">
 <h1>Simulations</h1>
 <p>We will fit the PLN, CEGs and NegBin to a data set. From each fitted distribution we will simulate data, and estimate SR with each distribution.</p>
+<p>We can see that, broadly, each distribution does OK with its own data, but badly with the others. The negative binomial is rather unstable, hence there are fewer points. If might be that CEGS slightly over-estimates species richness, but we would need more data.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Show the code</summary>
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># n &lt;- data$co[data$sample.no==2]</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span>(<span class="sc">!</span><span class="fu">file.exists</span>(<span class="st">"data/SRBiases.txt"</span>)) {</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  BigSites <span class="ot">&lt;-</span> BasicStats<span class="sc">$</span>sample.name[<span class="fu">which</span>(BasicStats<span class="sc">$</span>UniqueCounts<span class="sc">&gt;</span><span class="dv">60</span>)]</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  Use <span class="ot">&lt;-</span> data<span class="sc">$</span>sample.name<span class="sc">%in%</span>BigSites</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  Biases.by <span class="ot">&lt;-</span> <span class="fu">tapply</span>(data<span class="sc">$</span>co[Use], <span class="fu">list</span>(data<span class="sc">$</span>sample.no[Use]), ParametricBootstraps, <span class="at">simplify=</span><span class="cn">TRUE</span>, <span class="at">nsim=</span><span class="dv">50</span>)</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  Biases.m <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, Biases.by)</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  Biases <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(Biases.m)</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">write.csv</span>(Biases, <span class="at">file=</span><span class="st">'data/SRBiases.txt'</span>)</span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>PlotSR <span class="ot">&lt;-</span> <span class="cf">function</span>(df, <span class="at">which=</span><span class="fu">c</span>(<span class="st">"CEGS"</span>, <span class="st">"NB"</span>, <span class="st">"PLN"</span>)) {</span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  dd <span class="ot">&lt;-</span> df[,<span class="fu">grep</span>(which, <span class="fu">names</span>(df))]</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  Diff <span class="ot">&lt;-</span> <span class="fu">sweep</span>(<span class="fu">log</span>(dd[,<span class="fu">grep</span>(<span class="st">"richness"</span>, <span class="fu">names</span>(dd))]), <span class="dv">1</span>, <span class="fu">log</span>(dd[,<span class="fu">grep</span>(<span class="st">"SimSR"</span>, <span class="fu">names</span>(dd))]), <span class="st">"-"</span>)</span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>  Names <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">sapply</span>(<span class="fu">names</span>(Diff), <span class="cf">function</span>(nm, lst) <span class="fu">rep</span>(nm, <span class="at">times=</span><span class="fu">length</span>(lst[[nm]])), <span class="at">lst=</span>dd))</span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  SRdata <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">Diff=</span><span class="fu">unlist</span>(Diff), <span class="at">model=</span><span class="fu">unlist</span>(Names), </span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>                       <span class="at">dataset =</span><span class="fu">unlist</span>(<span class="fu">lapply</span>(Diff, <span class="cf">function</span>(x) <span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(x))))</span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>  SRdata <span class="ot">&lt;-</span> SRdata[<span class="sc">!</span><span class="fu">is.nan</span>(SRdata<span class="sc">$</span>Diff),]</span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>  SRdata<span class="sc">$</span>model.at <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">as.factor</span>(SRdata<span class="sc">$</span>model))</span>
-<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>  ylabels <span class="ot">&lt;-</span> <span class="fu">tapply</span>(SRdata<span class="sc">$</span>model, <span class="fu">list</span>(SRdata<span class="sc">$</span>model.at), <span class="cf">function</span>(x) <span class="fu">gsub</span>(<span class="st">"_.*"</span>, <span class="st">""</span>, <span class="fu">gsub</span>(<span class="st">".*</span><span class="sc">\\</span><span class="st">."</span>, <span class="st">""</span>, x[<span class="dv">1</span>])))</span>
-<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>                    </span>
-<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot</span>(SRdata<span class="sc">$</span>Diff, <span class="fu">jitter</span>(SRdata<span class="sc">$</span>model.at), <span class="at">yaxt=</span><span class="st">"n"</span>, <span class="at">main=</span>which,</span>
-<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>       <span class="at">xlab=</span><span class="st">"Bias in species richness estimate"</span>, <span class="at">ylab=</span><span class="st">""</span>)</span>
-<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">axis</span>(<span class="dv">2</span>, <span class="at">labels=</span>ylabels, <span class="at">at=</span><span class="fu">as.numeric</span>(<span class="fu">names</span>(ylabels)), <span class="at">las=</span><span class="dv">1</span>)</span>
-<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">abline</span>(<span class="at">v=</span><span class="dv">0</span>, <span class="at">lty=</span><span class="dv">3</span>)</span>
-<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>SRBiases <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"data/SRBiases.txt"</span>)</span>
-<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow=</span><span class="fu">c</span>(<span class="dv">3</span>,<span class="dv">1</span>))</span>
-<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a><span class="fu">invisible</span>(<span class="fu">sapply</span>(<span class="fu">c</span>(<span class="st">"CEGS"</span>, <span class="st">"NB"</span>, <span class="st">"PLN"</span>), <span class="cf">function</span>(x, df) <span class="fu">PlotSR</span>(df, <span class="at">which=</span>x), <span class="at">df=</span>SRBiases))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># n &lt;- data$co[data$sample.no==2]</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span>(<span class="sc">!</span><span class="fu">file.exists</span>(<span class="st">"data/SRBiases.txt"</span>)) {</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  BigSites <span class="ot">&lt;-</span> BasicStats<span class="sc">$</span>sample.name[<span class="fu">which</span>(BasicStats<span class="sc">$</span>UniqueCounts<span class="sc">&gt;</span><span class="dv">60</span>)]</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  Use <span class="ot">&lt;-</span> data<span class="sc">$</span>sample.name<span class="sc">%in%</span>BigSites</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  Biases.by <span class="ot">&lt;-</span> <span class="fu">tapply</span>(data<span class="sc">$</span>co[Use], <span class="fu">list</span>(data<span class="sc">$</span>sample.no[Use]), ParametricBootstraps, <span class="at">simplify=</span><span class="cn">TRUE</span>, <span class="at">nsim=</span><span class="dv">50</span>)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  Biases.m <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, Biases.by)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  Biases <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(Biases.m)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">write.csv</span>(Biases, <span class="at">file=</span><span class="st">'data/SRBiases.txt'</span>)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>PlotSR <span class="ot">&lt;-</span> <span class="cf">function</span>(df, <span class="at">which=</span><span class="fu">c</span>(<span class="st">"CEGS"</span>, <span class="st">"NB"</span>, <span class="st">"PLN"</span>)) {</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>  dd <span class="ot">&lt;-</span> df[,<span class="fu">grep</span>(which, <span class="fu">names</span>(df))]</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>  Diff <span class="ot">&lt;-</span> <span class="fu">sweep</span>(<span class="fu">log</span>(dd[,<span class="fu">grep</span>(<span class="st">"richness"</span>, <span class="fu">names</span>(dd))]), <span class="dv">1</span>, <span class="fu">log</span>(dd[,<span class="fu">grep</span>(<span class="st">"SimSR"</span>, <span class="fu">names</span>(dd))]), <span class="st">"-"</span>)</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>  Names <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">sapply</span>(<span class="fu">names</span>(Diff), <span class="cf">function</span>(nm, lst) <span class="fu">rep</span>(nm, <span class="at">times=</span><span class="fu">length</span>(lst[[nm]])), <span class="at">lst=</span>dd))</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>  SRdata <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">Diff=</span><span class="fu">unlist</span>(Diff), <span class="at">model=</span><span class="fu">unlist</span>(Names), </span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>                       <span class="at">dataset =</span><span class="fu">unlist</span>(<span class="fu">lapply</span>(Diff, <span class="cf">function</span>(x) <span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(x))))</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>  SRdata <span class="ot">&lt;-</span> SRdata[<span class="sc">!</span><span class="fu">is.nan</span>(SRdata<span class="sc">$</span>Diff),]</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>  SRdata<span class="sc">$</span>model.at <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">as.factor</span>(SRdata<span class="sc">$</span>model))</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>  ylabels <span class="ot">&lt;-</span> <span class="fu">tapply</span>(SRdata<span class="sc">$</span>model, <span class="fu">list</span>(SRdata<span class="sc">$</span>model.at), <span class="cf">function</span>(x) <span class="fu">gsub</span>(<span class="st">"_.*"</span>, <span class="st">""</span>, <span class="fu">gsub</span>(<span class="st">".*</span><span class="sc">\\</span><span class="st">."</span>, <span class="st">""</span>, x[<span class="dv">1</span>])))</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>                    </span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot</span>(SRdata<span class="sc">$</span>Diff, <span class="fu">jitter</span>(SRdata<span class="sc">$</span>model.at), <span class="at">yaxt=</span><span class="st">"n"</span>, <span class="at">main=</span>which,</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>       <span class="at">xlab=</span><span class="st">"Bias in species richness estimate"</span>, <span class="at">ylab=</span><span class="st">""</span>)</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">axis</span>(<span class="dv">2</span>, <span class="at">labels=</span>ylabels, <span class="at">at=</span><span class="fu">as.numeric</span>(<span class="fu">names</span>(ylabels)), <span class="at">las=</span><span class="dv">1</span>)</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">abline</span>(<span class="at">v=</span><span class="dv">0</span>, <span class="at">lty=</span><span class="dv">3</span>)</span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>SRBiases <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"data/SRBiases.txt"</span>)</span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow=</span><span class="fu">c</span>(<span class="dv">3</span>,<span class="dv">1</span>))</span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a><span class="fu">invisible</span>(<span class="fu">sapply</span>(<span class="fu">c</span>(<span class="st">"CEGS"</span>, <span class="st">"NB"</span>, <span class="st">"PLN"</span>), <span class="cf">function</span>(x, df) <span class="fu">PlotSR</span>(df, <span class="at">which=</span>x), <span class="at">df=</span>SRBiases))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div>
