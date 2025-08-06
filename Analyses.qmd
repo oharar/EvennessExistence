@@ -195,19 +195,31 @@ We can see that, broadly, each distribution does OK with its own data, but badly
 ```{r SRBiases}
 #| fig-height: 14
 # n <- data$co[data$sample.no==2]
-BigNos <- NULL
+BigNos <- NULL # 100
 if(!file.exists("data/SRBiases.txt")) {
   if(!is.null(BigNos)) {
     BigSites <- BasicStats$sample.name[which(BasicStats$UniqueCounts>BigNos)]
-    Use <- data$sample.name%in%BigSites
+    Use <- which(data$sample.name%in%BigSites)
   } else {
+    BigSites <- BasicStats$sample.name
     Use <- 1:nrow(data)
   }
   
-  Biases.by <- tapply(data$co[Use], list(data$sample.no[Use]), ParametricBootstraps, simplify=TRUE, nsim=50)
-  Biases.m <- do.call(rbind, Biases.by)
-  Biases <- data.frame(Biases.m)
-  write.csv(Biases, file='data/SRBiases.txt')
+  # Do first data set, so we can add column names
+    nn <- dat[dat$sample.name==BigSites[1],"count"]
+    pb <- t(ParametricBootstraps(nn, nsim=50))
+    rownames(pb) <- BigSites[1]
+
+    write.table(pb, file='data/SRBiases.txt', append = FALSE, sep=",")
+
+    library(parallel)
+  Biases.by <- mclapply(BigSites[-1], function(wh, dat, nsim) {
+    nn <- dat[dat$sample.name==wh,"count"]
+    pb <- t(ParametricBootstraps(nn, nsim=nsim))
+    rownames(pb) <- wh
+
+    write.table(pb, file='data/SRBiases.txt', append = TRUE, sep=",", col.names = FALSE)
+    }, dat=data, nsim=50, mc.cores=4)
 }
 
 

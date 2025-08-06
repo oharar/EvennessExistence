@@ -87,7 +87,7 @@ if(!file.exists('data/basic_statisticsNoDom.txt')) {
 
 # DISTRIBUTION PARAMETERS
 
-Now we fit the Poisson lognormal disrtibution, CEGS ("compound exponential-geometric series distribution"), and negtive binomial: these are all zero truncated. From these we return the patameter estimates and estimates of species richness.
+Now we fit the Poisson lognormal disrtibution, CEGS ("compound exponential-geometric series distribution"), and negtive binomial: these are all zero truncated. From these we return the parameter estimates and estimates of species richness.
 
 ```{r}
 # Calculate Parametric Richness Estimates
